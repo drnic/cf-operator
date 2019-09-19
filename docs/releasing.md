@@ -13,10 +13,14 @@ To create a new pipeline run this in the CI repository:
 
 ```
 cd pipelines/cf-operator-release
-./configure.sh CFO v0.4.0
+./configure.sh CFO v0.4.x v0.4
 ```
 
-Where `CFO` is your concourse target and `v0.4.0` is the name of the branch.
+Where `CFO` is your concourse target and `v0.4.x` is the name of the branch.
+The last argument, `v0.4` is used to filter Github tags, which belong to the release.
+
+This allows a separate Github branch and Concourse pipeline for each major version.
+Within those pipelines, releases can be built from minor versions.
 
 ## Create a new release
 
@@ -38,7 +42,15 @@ The docker image is only referenced from the helm chart and not mentioned in the
 
 ## Checklist
 
-0. Create a new release pipeline for a version branch
+### Mayor Release
+
+0. Create version branch
+0. Create a new release pipeline for that branch
+0. Unpause pipeline
+0. Continue with "Minor Bump"
+
+### Minor Bump
+
 1. Wait for commit to pass release pipeline
 2. Tag commit with new version number
 3. Create a draft Github release for that tag, 'release' job triggers
