@@ -2,6 +2,7 @@ package extendedjob
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/pkg/errors"
 	batchv1 "k8s.io/api/batch/v1"
@@ -12,12 +13,19 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	crc "sigs.k8s.io/controller-runtime/pkg/client"
 
+	"code.cloudfoundry.org/cf-operator/pkg/bosh/converter"
 	ejv1 "code.cloudfoundry.org/cf-operator/pkg/kube/apis/extendedjob/v1alpha1"
 	"code.cloudfoundry.org/cf-operator/pkg/kube/util"
 	"code.cloudfoundry.org/cf-operator/pkg/kube/util/ctxlog"
 	"code.cloudfoundry.org/cf-operator/pkg/kube/util/names"
 	"code.cloudfoundry.org/cf-operator/pkg/kube/util/reference"
 	vss "code.cloudfoundry.org/cf-operator/pkg/kube/util/versionedsecretstore"
+)
+
+const (
+	outputPersistDirName = "output-persist-dir"
+
+	outputPersistDirMountPath = "/mnt/output-persist/"
 )
 
 type setOwnerReferenceFunc func(owner, object metav1.Object, scheme *runtime.Scheme) error
@@ -48,6 +56,43 @@ type jobCreatorImpl struct {
 // retry if one of the references are not present.
 func (j jobCreatorImpl) Create(ctx context.Context, eJob ejv1.ExtendedJob) (retry bool, err error) {
 	template := eJob.Spec.Template.DeepCopy()
+
+	// Create a container for persisting output
+	outputPersistContainer := corev1.Container{
+		Name:    "output-persist",
+		Image:   converter.GetOperatorDockerImage(),
+		Command: []string{"/usr/bin/dumb-init", "--"},
+		Args: []string{
+			"/bin/sh",
+			"-xc",
+			"cf-operator util output-persist",
+		},
+	}
+
+	// Loop through containers and add quarks logging volume specs.
+	for containerIndex, container := range template.Spec.Containers {
+
+		// Add pod volume specs to the pod
+		podVolumeSpec := corev1.Volume{
+			Name:         fmt.Sprintf("%s%s", "output-", container.Name),
+			VolumeSource: corev1.VolumeSource{EmptyDir: &corev1.EmptyDirVolumeSource{}},
+		}
+		template.Spec.Volumes = append(template.Spec.Volumes, podVolumeSpec)
+
+		// Add container volume specs to continer
+		containerVolumeMountSpec := corev1.VolumeMount{
+			Name:      fmt.Sprintf("%s%s", "output-", container.Name),
+			MountPath: "/mnt/quarks",
+		}
+		template.Spec.Containers[containerIndex].VolumeMounts = append(template.Spec.Containers[containerIndex].VolumeMounts, containerVolumeMountSpec)
+
+		// Add container volume spec to output persist container
+		containerVolumeMountSpec.MountPath = fmt.Sprintf("%s%s", "/mnt/quarks/", container.Name)
+		outputPersistContainer.VolumeMounts = append(outputPersistContainer.VolumeMounts, containerVolumeMountSpec)
+	}
+
+	// Add output persist container to the pod template
+	template.Spec.Containers = append(template.Spec.Containers, outputPersistContainer)
 
 	if template.Labels == nil {
 		template.Labels = map[string]string{}
