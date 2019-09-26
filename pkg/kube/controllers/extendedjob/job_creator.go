@@ -42,7 +42,7 @@ func NewJobCreator(client crc.Client, scheme *runtime.Scheme, f setOwnerReferenc
 
 // JobCreator is the interface that wraps the basic Create method.
 type JobCreator interface {
-	Create(ctx context.Context, eJob ejv1.ExtendedJob) (retry bool, err error)
+	Create(ctx context.Context, eJob ejv1.ExtendedJob, namespace string) (retry bool, err error)
 }
 
 type jobCreatorImpl struct {
@@ -54,7 +54,7 @@ type jobCreatorImpl struct {
 
 // Create satisfies the JobCreator interface. It creates a Job to complete ExJob. It returns the
 // retry if one of the references are not present.
-func (j jobCreatorImpl) Create(ctx context.Context, eJob ejv1.ExtendedJob) (retry bool, err error) {
+func (j jobCreatorImpl) Create(ctx context.Context, eJob ejv1.ExtendedJob, namespace string) (retry bool, err error) {
 	template := eJob.Spec.Template.DeepCopy()
 
 	// Create a container for persisting output
@@ -66,6 +66,12 @@ func (j jobCreatorImpl) Create(ctx context.Context, eJob ejv1.ExtendedJob) (retr
 			"/bin/sh",
 			"-xc",
 			fmt.Sprintf("%s", "cf-operator util persist-output"),
+		},
+		Env: []corev1.EnvVar{
+			{
+				Name:  "NAMESPACE",
+				Value: namespace,
+			},
 		},
 	}
 

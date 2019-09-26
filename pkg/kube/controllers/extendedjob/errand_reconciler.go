@@ -101,8 +101,8 @@ func (r *ErrandReconciler) Reconcile(request reconcile.Request) (reconcile.Resul
 		}
 	}
 
-	r.injectContainerEnv(&eJob.Spec.Template.Spec, request.Namespace)
-	if retry, err := r.jobCreator.Create(ctx, *eJob); err != nil {
+	r.injectContainerEnv(&eJob.Spec.Template.Spec)
+	if retry, err := r.jobCreator.Create(ctx, *eJob, request.Namespace); err != nil {
 		return reconcile.Result{}, ctxlog.WithEvent(eJob, "CreateJobError").Errorf(ctx, "Failed to create job '%s': %s", eJob.Name, err)
 	} else if retry {
 		ctxlog.Infof(ctx, "Retrying to create job '%s'", eJob.Name)
@@ -137,7 +137,7 @@ func (r *ErrandReconciler) Reconcile(request reconcile.Request) (reconcile.Resul
 
 // injectContainerEnv injects AZ info to container envs
 // errands always have an AZ_INDEX of 1
-func (r *ErrandReconciler) injectContainerEnv(podSpec *corev1.PodSpec, namespace string) {
+func (r *ErrandReconciler) injectContainerEnv(podSpec *corev1.PodSpec) {
 
 	containers := []*corev1.Container{}
 	for i := 0; i < len(podSpec.Containers); i++ {
@@ -153,7 +153,6 @@ func (r *ErrandReconciler) injectContainerEnv(podSpec *corev1.PodSpec, namespace
 		envs = upsertEnvs(envs, EnvCfOperatorAzIndex, "1")
 		envs = upsertEnvs(envs, EnvReplicas, "1")
 		envs = upsertEnvs(envs, EnvPodOrdinal, "0")
-		envs = upsertEnvs(envs, EnvCFONamespace, namespace)
 
 		container.Env = envs
 	}
