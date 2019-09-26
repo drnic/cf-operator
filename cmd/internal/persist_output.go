@@ -2,7 +2,9 @@ package cmd
 
 import (
 	"code.cloudfoundry.org/cf-operator/pkg/kube/controllers/extendedjob"
+	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 const (
@@ -19,12 +21,26 @@ specified to this command.
 `,
 	RunE: func(cmd *cobra.Command, args []string) (err error) {
 
+		namespace := viper.GetString("namespace")
+		if namespace == "" {
+			return errors.Errorf("%s namespace is empty", persistOutputFileFailedMessage)
+		}
+
 		return extendedjob.ConvertOutputToSecret()
 	},
 }
 
 func init() {
 	utilCmd.AddCommand(persistOutputCmd)
+
+	persistOutputCmd.Flags().StringP("namespace", "", "", "Kubernetes namespace in which cf-operator runs")
+
+	viper.BindPFlag("namespace", persistOutputCmd.Flags().Lookup("namespace"))
+
+	argToEnv := map[string]string{
+		"namespace": "NAMESPACE",
+	}
+	AddEnvToUsage(persistOutputCmd, argToEnv)
 
 	/*plateRenderCmd.Flags().StringP("output-dir", "d", converter.VolumeJobsDirMountPath, "path to output dir.")
 	templateRenderCmd.Flags().IntP("spec-index", "", -1, "index of the instance spec")
