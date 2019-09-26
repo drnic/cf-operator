@@ -26,7 +26,7 @@ specified to this command.
 			return errors.Errorf("%s namespace is empty", persistOutputFileFailedMessage)
 		}
 
-		return extendedjob.ConvertOutputToSecret()
+		return extendedjob.ConvertOutputToSecret(namespace)
 	},
 }
 

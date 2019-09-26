@@ -12,7 +12,7 @@ import (
 
 // ConvertOutputToSecret converts the output files of each container
 // in the pod into a kubernetes secret.
-func ConvertOutputToSecret() error {
+func ConvertOutputToSecret(namespace string) error {
 
 	// Check for the file in /mnt using polling of inotigfu in go lang
 
@@ -21,9 +21,6 @@ func ConvertOutputToSecret() error {
 	if err != nil {
 		panic(err)
 	}
-
-	// fetch namespace from environment variable
-	namespace := os.Getenv(EnvCFONamespace)
 
 	// Authenticate with the incluster kube config
 	config, err := rest.InClusterConfig()
