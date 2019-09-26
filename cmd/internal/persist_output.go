@@ -42,16 +42,4 @@ func init() {
 	viper.BindPFlag("replicas", templateRenderCmd.Flags().Lookup("replicas"))
 	viper.BindPFlag("pod-ip", templateRenderCmd.Flags().Lookup("pod-ip"))*/
 
-	//	argToEnv := map[string]string{
-	/*"pod-ip":                  converter.PodIPEnvVar,
-	"jobs-dir":                "JOBS_DIR",
-	"output-dir":              "OUTPUT_DIR",
-	"docker-image-repository": "DOCKER_IMAGE_REPOSITORY",
-	"spec-index":              "SPEC_INDEX",
-	"az-index":                "AZ_INDEX",
-	"pod-ordinal":             "POD_ORDINAL",
-	"replicas":                "REPLICAS",*/
-	//		"ejob-name": "EJOB_NAME",
-	//	}
-	//	AddEnvToUsage(persistOutputCmd, argToEnv)
 }
