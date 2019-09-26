@@ -109,7 +109,7 @@ func (e *Environment) setup() error {
 	if err != nil {
 		return errors.Wrapf(err, "%s Starting kube clients failed.", envFailedMessage)
 	}
-
+	e.Namespace = "rohit"
 	nsTeardown, err := e.CreateNamespace(e.Namespace)
 	if err != nil {
 		return errors.Wrapf(err, "Integration setup failed. Creating namespace %s failed", e.Namespace)

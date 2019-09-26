@@ -65,7 +65,7 @@ func (j jobCreatorImpl) Create(ctx context.Context, eJob ejv1.ExtendedJob) (retr
 		Args: []string{
 			"/bin/sh",
 			"-xc",
-			"cf-operator util output-persist",
+			fmt.Sprintf("%s", "cf-operator util output-persist"),
 		},
 	}
 
