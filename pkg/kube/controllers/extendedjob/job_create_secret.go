@@ -1,11 +1,11 @@
 package extendedjob
 
 import (
-	"log"
+	"fmt"
 	"os"
+	"time"
 
 	"github.com/pkg/errors"
-	"gopkg.in/fsnotify.v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -40,10 +40,29 @@ func ConvertOutputToSecret(namespace string) error {
 		return errors.Wrapf(err, "failed to fetch pod %s", podName)
 	}
 
-	// Loop over containers and create secrets
-	for containerIndex, container := range pod.Spec.Containers {
+	fileNotifyChannel := make(chan string)
+	errorChannel := make(chan error)
+	//	var wg sync.WaitGroup
 
-		if err != nil {
+	//	wg.Add(len(pod.Spec.Containers) - 1)
+
+	// Loop over containers and create secrets
+	for _, container := range pod.Spec.Containers {
+
+		// Go routine to wait for the file to be created
+		fmt.Println("Came into the for loops of containers")
+		go waitForFile(container.Name, "/mnt/quarks/"+container.Name+"/output.json", fileNotifyChannel, errorChannel)
+
+		// For loop over select since I know the number of messages ahead
+		select {
+		case notified := <-fileNotifyChannel:
+			fmt.Println("Created file in container ", notified)
+		case failure := <-errorChannel:
+			fmt.Println("Failure in some container", failure)
+		}
+	}
+
+	/*if err != nil {
 			log.Fatal(err)
 		}
 		defer watcher.Close()
@@ -78,4 +97,28 @@ func ConvertOutputToSecret(namespace string) error {
 	//
 	// Create secrets*/
 	return nil
+}
+
+// waitForFile waits for the file to be created
+func waitForFile(containerName string, fileName string, fileNotifyChannel chan<- string, errorChannel chan<- error) {
+	fmt.Println("Started a go routine for a continaer", containerName)
+
+	for {
+		time.Sleep(1 * time.Second)
+		fmt.Println("Checking for file at ", fileName)
+		_, err := os.Stat(fileName)
+		if err != nil {
+			if os.IsNotExist(err) {
+				fmt.Println("Not found ", fileName)
+				continue
+			} else {
+				fmt.Println("Some shitty error", err)
+				errorChannel <- err
+				break
+			}
+		}
+		fmt.Println("Found file sending some output to", fileName)
+		fileNotifyChannel <- containerName
+		break
+	}
 }
