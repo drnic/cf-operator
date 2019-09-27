@@ -49,8 +49,11 @@ func ConvertOutputToSecret(namespace string) error {
 	// Loop over containers and create secrets
 	for _, container := range pod.Spec.Containers {
 
+		if container.Name == "output-persist" {
+			continue
+		}
+
 		// Go routine to wait for the file to be created
-		fmt.Println("Came into the for loops of containers")
 		go waitForFile(container.Name, "/mnt/quarks/"+container.Name+"/output.json", fileNotifyChannel, errorChannel)
 
 		// For loop over select since I know the number of messages ahead
@@ -101,23 +104,18 @@ func ConvertOutputToSecret(namespace string) error {
 
 // waitForFile waits for the file to be created
 func waitForFile(containerName string, fileName string, fileNotifyChannel chan<- string, errorChannel chan<- error) {
-	fmt.Println("Started a go routine for a continaer", containerName)
 
 	for {
 		time.Sleep(1 * time.Second)
-		fmt.Println("Checking for file at ", fileName)
 		_, err := os.Stat(fileName)
 		if err != nil {
 			if os.IsNotExist(err) {
-				fmt.Println("Not found ", fileName)
 				continue
 			} else {
-				fmt.Println("Some shitty error", err)
 				errorChannel <- err
 				break
 			}
 		}
-		fmt.Println("Found file sending some output to", fileName)
 		fileNotifyChannel <- containerName
 		break
 	}

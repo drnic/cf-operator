@@ -1,8 +1,6 @@
 package cmd
 
 import (
-	"fmt"
-
 	"code.cloudfoundry.org/cf-operator/pkg/kube/controllers/extendedjob"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
@@ -23,14 +21,10 @@ specified to this command.
 `,
 	RunE: func(cmd *cobra.Command, args []string) (err error) {
 
-		fmt.Println("Running command persist output")
-
 		namespace := viper.GetString("namespace")
 		if namespace == "" {
 			return errors.Errorf("%s namespace is empty", persistOutputFileFailedMessage)
 		}
-
-		fmt.Println("got namespace", namespace)
 
 		return extendedjob.ConvertOutputToSecret(namespace)
 	},
