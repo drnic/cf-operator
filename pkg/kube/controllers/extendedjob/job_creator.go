@@ -115,6 +115,10 @@ func (j jobCreatorImpl) Create(ctx context.Context, eJob ejv1.ExtendedJob, names
 				Name:  "NAMESPACE",
 				Value: namespace,
 			},
+			{
+				Name: "OUTPUT_PREFIX",
+				Value: eJob.Spec.Output.NamePrefix,
+			},
 		},
 	}
 

@@ -26,7 +26,9 @@ specified to this command.
 			return errors.Errorf("%s namespace is empty", persistOutputFileFailedMessage)
 		}
 
-		return extendedjob.ConvertOutputToSecret(namespace)
+		outputPrefix := viper.GetString("output-prefix")
+
+		return extendedjob.ConvertOutputToSecret(namespace, outputPrefix)
 	},
 }
 
@@ -34,11 +36,16 @@ func init() {
 	utilCmd.AddCommand(persistOutputCmd)
 
 	persistOutputCmd.Flags().StringP("namespace", "", "", "Kubernetes namespace in which cf-operator runs")
+	persistOutputCmd.Flags().StringP("output-prefix", "", "", "Name to be prefixed to the secret name.")
+
 
 	viper.BindPFlag("namespace", persistOutputCmd.Flags().Lookup("namespace"))
+	viper.BindPFlag("output-prefix", persistOutputCmd.Flags().Lookup("output-prefix"))
+
 
 	argToEnv := map[string]string{
 		"namespace": "NAMESPACE",
+		"output-prefix": "OUTPUT_PREFIX",
 	}
 	AddEnvToUsage(persistOutputCmd, argToEnv)
 

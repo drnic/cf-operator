@@ -4,8 +4,12 @@ import (
 	"fmt"
 	"os"
 	"time"
+	"io/ioutil"
+	"encoding/json"
+
 
 	"github.com/pkg/errors"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -13,7 +17,7 @@ import (
 
 // ConvertOutputToSecret converts the output files of each container
 // in the pod into a kubernetes secret.
-func ConvertOutputToSecret(namespace string) error {
+func ConvertOutputToSecret(namespace string, namePrefix string) error {
 
 	// Check for the file in /mnt using polling of inotigfu in go lang
 
@@ -42,9 +46,6 @@ func ConvertOutputToSecret(namespace string) error {
 
 	fileNotifyChannel := make(chan string)
 	errorChannel := make(chan error)
-	//	var wg sync.WaitGroup
-
-	//	wg.Add(len(pod.Spec.Containers) - 1)
 
 	// Loop over containers and create secrets
 	for _, container := range pod.Spec.Containers {
@@ -56,12 +57,37 @@ func ConvertOutputToSecret(namespace string) error {
 		// Go routine to wait for the file to be created
 		go waitForFile(container.Name, "/mnt/quarks/"+container.Name+"/output.json", fileNotifyChannel, errorChannel)
 
-		// For loop over select since I know the number of messages ahead
-		select {
-		case notified := <-fileNotifyChannel:
-			fmt.Println("Created file in container ", notified)
-		case failure := <-errorChannel:
-			fmt.Println("Failure in some container", failure)
+		// wait for all the go routines
+		for i := 0; i < len(pod.Spec.Containers)-1; i++ {
+			select {
+				case notified := <-fileNotifyChannel:
+					fmt.Println("Created file in container ", notified)
+
+					// Create secret
+					secretName := namePrefix + container.Name
+
+					// Get json from file
+					file, _ := ioutil.ReadFile("/mnt/quarks/"+container.Name+"/output.json")
+
+					var data map[string]string
+					_ = json.Unmarshal([]byte(file), &data)
+
+					secret := &corev1.Secret{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      secretName,
+							Namespace: namespace,
+						},
+					}
+
+					secret.StringData = data
+					//secret.Labels = secretLabels
+					secret, err := clientset.CoreV1().Secrets(namespace).Create(secret)
+					if err != nil {
+						fmt.Println("Failed to create secret", secret.Name)
+					}				
+				case failure := <-errorChannel:
+					fmt.Println("Failure in some container", failure)
+			}
 		}
 	}
 
