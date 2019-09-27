@@ -20,7 +20,7 @@ import (
 	bdv1 "code.cloudfoundry.org/cf-operator/pkg/kube/apis/boshdeployment/v1alpha1"
 	"code.cloudfoundry.org/cf-operator/pkg/kube/util/config"
 	"code.cloudfoundry.org/cf-operator/pkg/kube/util/ctxlog"
-	"code.cloudfoundry.org/cf-operator/pkg/kube/util/reference"
+	"code.cloudfoundry.org/quarks-utils/pkg/reference"
 )
 
 // AddDeployment creates a new BOSHDeployment controller to watch for

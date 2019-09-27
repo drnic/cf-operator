@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	ejv1 "code.cloudfoundry.org/cf-operator/pkg/kube/apis/extendedjob/v1alpha1"
+	ejv1 "code.cloudfoundry.org/quarks-job/pkg/kube/apis/extendedjob/v1alpha1"
 	"code.cloudfoundry.org/cf-operator/testing"
 
 	. "github.com/onsi/ginkgo"
