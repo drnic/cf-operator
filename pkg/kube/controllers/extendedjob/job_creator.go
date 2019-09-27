@@ -57,6 +57,19 @@ type jobCreatorImpl struct {
 func (j jobCreatorImpl) Create(ctx context.Context, eJob ejv1.ExtendedJob, namespace string) (retry bool, err error) {
 	template := eJob.Spec.Template.DeepCopy()
 
+	// Create a service account for the pod
+	serviceAccount := &corev1.ServiceAccount{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "persist-output-service-account",
+			Namespace: namespace,
+		},
+	}
+
+	err = j.client.Create(ctx, serviceAccount)
+	if err != nil {
+		return false, errors.Wrapf(err, "Could not create service account for pod in ejob '%s'", eJob.Name)
+	}
+
 	// Create a container for persisting output
 	outputPersistContainer := corev1.Container{
 		Name:    "output-persist",
