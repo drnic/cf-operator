@@ -7,6 +7,7 @@ import (
 	"github.com/pkg/errors"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
+	v1 "k8s.io/api/rbac/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -65,9 +66,34 @@ func (j jobCreatorImpl) Create(ctx context.Context, eJob ejv1.ExtendedJob, names
 		},
 	}
 
+	// Bind read only role to the service account
+	roleBinding := &v1.RoleBinding{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "read-view",
+			Namespace: namespace,
+		},
+		Subjects: []v1.Subject{
+			{
+				Kind:      "ServiceAccount",
+				Name:      "persist-output-service-account",
+				Namespace: namespace,
+			},
+		},
+		RoleRef: v1.RoleRef{
+			Kind:     "ClusterRole",
+			Name:     "cluster-admin", // Need to change this
+			APIGroup: "rbac.authorization.k8s.io",
+		},
+	}
+
 	err = j.client.Create(ctx, serviceAccount)
 	if err != nil {
 		return false, errors.Wrapf(err, "Could not create service account for pod in ejob '%s'", eJob.Name)
+	}
+
+	err = j.client.Create(ctx, roleBinding)
+	if err != nil {
+		return false, errors.Wrapf(err, "Could not create role binding for pod in ejob '%s'", eJob.Name)
 	}
 
 	// Create a container for persisting output
