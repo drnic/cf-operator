@@ -8,8 +8,7 @@ spec:
       containers:
         - name: json
           image: busybox
-          command: ["/bin/sh"]
-          args: ["-c","echo rohit && touch /mnt/quarks/output.json && sleep 10000"]
+          command: ["echo", '{"foo": "1", "bar": "baz"}']
       restartPolicy: Never
       terminationGracePeriodSeconds: 1
   trigger:

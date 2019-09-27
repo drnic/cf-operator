@@ -112,7 +112,7 @@ func (j jobCreatorImpl) Create(ctx context.Context, eJob ejv1.ExtendedJob, names
 		},
 		Env: []corev1.EnvVar{
 			{
-				Name:  "NAMESPACE",
+				Name:  En,
 				Value: namespace,
 			},
 			{
