@@ -90,13 +90,14 @@ func (j jobCreatorImpl) Create(ctx context.Context, eJob ejv1.ExtendedJob, names
 	template.Spec.ServiceAccountName = "persist-output-service-account"
 
 	err = j.client.Create(ctx, serviceAccount)
-	if err != nil {
-		return false, errors.Wrapf(err, "Could not create service account for pod in ejob '%s'", eJob.Name)
-	}
+	//	if err != nil {
+
+	//return false, errors.Wrapf(err, "Could not create service account for pod in ejob '%s'", eJob.Name)
+	//	}
 
 	err = j.client.Create(ctx, roleBinding)
 	if err != nil {
-		return false, errors.Wrapf(err, "Could not create role binding for pod in ejob '%s'", eJob.Name)
+		//return false, errors.Wrapf(err, "Could not create role binding for pod in ejob '%s'", eJob.Name)
 	}
 
 	// Create a container for persisting output

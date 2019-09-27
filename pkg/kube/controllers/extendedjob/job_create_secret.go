@@ -1,10 +1,11 @@
 package extendedjob
 
 import (
-	"fmt"
+	"log"
 	"os"
 
 	"github.com/pkg/errors"
+	"gopkg.in/fsnotify.v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -39,9 +40,7 @@ func ConvertOutputToSecret(namespace string) error {
 		return errors.Wrapf(err, "failed to fetch pod %s", podName)
 	}
 
-	fmt.Println(pod)
-
-	/*// Loop over containers and create secrets
+	// Loop over containers and create secrets
 	for containerIndex, container := range pod.Spec.Containers {
 
 		if err != nil {
