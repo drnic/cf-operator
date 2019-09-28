@@ -7,6 +7,7 @@ import (
 	"os"
 	"time"
 
+	ejv1 "code.cloudfoundry.org/cf-operator/pkg/kube/apis/extendedjob/v1alpha1"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -41,7 +42,16 @@ func ConvertOutputToSecret(namespace string, namePrefix string) error {
 		return errors.Wrapf(err, "failed to fetch pod %s", podName)
 	}
 
-	//clientSet.RESTClient().Get().Resource("extendedjob").Name("")
+	fmt.Println(pod)
+
+	exjob := &ejv1.ExtendedJobList{}
+
+	err = clientSet.RESTClient().Get().Resource("extendedjob").Do().Into(exjob)
+	if err != nil {
+		return errors.Wrapf(err, "failed to fetch exjob of the pod")
+	}
+
+	fmt.Println(exjob)
 
 	fileNotifyChannel := make(chan string)
 	errorChannel := make(chan error)

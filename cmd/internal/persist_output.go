@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"fmt"
+
 	"code.cloudfoundry.org/cf-operator/pkg/kube/controllers/extendedjob"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
@@ -28,7 +30,8 @@ into a versionsed secret or kube native secret using flags specified to this com
 
 		outputPrefix := viper.GetString("output-prefix")
 
-		return extendedjob.ConvertOutputToSecret(namespace, outputPrefix)
+		fmt.Println(extendedjob.ConvertOutputToSecret(namespace, outputPrefix))
+		return nil
 	},
 }
 
