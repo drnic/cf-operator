@@ -1,12 +1,11 @@
 package extendedjob
 
 import (
+	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"time"
-	"io/ioutil"
-	"encoding/json"
-
 
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
@@ -28,18 +27,21 @@ func ConvertOutputToSecret(namespace string, namePrefix string) error {
 		return errors.Wrapf(err, "Pod name is empty.")
 	}
 
+	pod := &corev1.Pod{}
+
 	// Authenticate with the cluster
-	err, clientSet := authenticateInCluster()
+	clientSet, err := authenticateInCluster()
 	if err != nil {
 		return err
 	}
 
 	// Fetch the pod
-	pod, err := clientset.CoreV1().Pods(namespace).Get(podName, metav1.GetOptions{})
+	pod, err = clientSet.CoreV1().Pods(namespace).Get(podName, metav1.GetOptions{})
 	if err != nil {
 		return errors.Wrapf(err, "failed to fetch pod %s", podName)
 	}
 
+	//clientSet.RESTClient().Get().Resource("extendedjob").Name("")
 
 	fileNotifyChannel := make(chan string)
 	errorChannel := make(chan error)
@@ -51,7 +53,7 @@ func ConvertOutputToSecret(namespace string, namePrefix string) error {
 			continue
 		}
 
-		filePath := fmt.Sprintf("%s%s", "/mnt/quarks",container.Name,"/output.json")
+		filePath := fmt.Sprintf("%s%s%s", "/mnt/quarks", container.Name, "/output.json")
 
 		// Go routine to wait for the file to be created
 		go waitForFile(container.Name, filePath, fileNotifyChannel, errorChannel)
@@ -59,10 +61,13 @@ func ConvertOutputToSecret(namespace string, namePrefix string) error {
 		// wait for all the go routines
 		for i := 0; i < len(pod.Spec.Containers)-1; i++ {
 			select {
-				case notified := <-fileNotifyChannel:
-					createOutputSecret(namePrefix, filePath, podName)
-				case failure := <-errorChannel:
-					fmt.Println("Failure in some container", failure)
+			case containerName := <-fileNotifyChannel:
+				err := createOutputSecret(containerName, namePrefix, namespace, podName, clientSet)
+				if err != nil {
+					fmt.Println("Failure creating secret", err)
+				}
+			case failure := <-errorChannel:
+				fmt.Println("Failure in some container", failure)
 			}
 		}
 	}
@@ -89,45 +94,47 @@ func waitForFile(containerName string, fileName string, fileNotifyChannel chan<-
 }
 
 // authenticateInCluster authenticates with the in cluster and returns the client
-func authenticateInCluster() (clientSet, error) {
+func authenticateInCluster() (*kubernetes.Clientset, error) {
 	config, err := rest.InClusterConfig()
 	if err != nil {
-		return nil,errors.Wrapf(err, "failed to authenticate with incluster config")
+		return nil, errors.Wrapf(err, "failed to authenticate with incluster config")
 	}
 
 	clientSet, err := kubernetes.NewForConfig(config)
 	if err != nil {
-		return nil,errors.Wrapf(err, "failed to fetch clientset with incluster config")
+		return nil, errors.Wrapf(err, "failed to fetch clientset with incluster config")
 	}
 	return clientSet, nil
 }
 
-func createOutputSecret(namePrefix string, filePath string, podName string, containerName string) error {
+func createOutputSecret(containerName string, namePrefix string, namespace string, podName string, clientSet *kubernetes.Clientset) error {
 
 	// Create secret
-	secretName := namePrefix + container.Name
+	secretName := namePrefix + containerName
+	filePath := fmt.Sprintf("%s%s%s", "/mnt/quarks", containerName, "/output.json")
 
 	// Fetch json from file
 	file, _ := ioutil.ReadFile(filePath)
 	var data map[string]string
-	err = json.Unmarshal([]byte(file), &data)
+	err := json.Unmarshal([]byte(file), &data)
 	if err != nil {
-		return errors.Wrapf(err, "failed to convert output file %s into json for creating secret %s in pod %s", 
-		 filePath, secretName, podName)
+		return errors.Wrapf(err, "failed to convert output file %s into json for creating secret %s in pod %s",
+			filePath, secretName, podName)
 	}
 
 	// Create secret for the outputfile to persist
 	secret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
-		Name:      secretName,
-		Namespace: namespace,
-	},
+			Name:      secretName,
+			Namespace: namespace,
+		},
+	}
 	secret.StringData = data
 
 	//secret.Labels = secretLabels
-	secret, err := clientset.CoreV1().Secrets(namespace).Create(secret)
+	secret, err = clientSet.CoreV1().Secrets(namespace).Create(secret)
 	if err != nil {
 		return errors.Wrapf(err, "Failed to create secret %s for container %s in pod %s.", secretName, containerName, podName)
-		if 
 	}
+	return nil
 }
