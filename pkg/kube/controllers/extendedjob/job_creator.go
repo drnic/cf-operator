@@ -112,11 +112,11 @@ func (j jobCreatorImpl) Create(ctx context.Context, eJob ejv1.ExtendedJob, names
 		},
 		Env: []corev1.EnvVar{
 			{
-				Name:  En,
+				Name:  EnvCFONamespace,
 				Value: namespace,
 			},
 			{
-				Name: "OUTPUT_PREFIX",
+				Name:  "OUTPUT_PREFIX",
 				Value: eJob.Spec.Output.NamePrefix,
 			},
 		},

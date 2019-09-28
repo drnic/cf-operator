@@ -21,9 +21,9 @@ into a versionsed secret or kube native secret using flags specified to this com
 `,
 	RunE: func(cmd *cobra.Command, args []string) (err error) {
 
-		namespace := viper.GetString("namespace")
-		if namespace == "" {
-			return errors.Errorf("%s namespace is empty", persistOutputFileFailedMessage)
+		namespace := viper.GetString("cf-operator-namespace")
+		if len(namespace) == 0 {
+			return errors.Errorf("%s cf-operator-namespace flag is empty.", persistOutputFileFailedMessage)
 		}
 
 		outputPrefix := viper.GetString("output-prefix")
@@ -35,16 +35,11 @@ into a versionsed secret or kube native secret using flags specified to this com
 func init() {
 	utilCmd.AddCommand(persistOutputCmd)
 
-	persistOutputCmd.Flags().StringP("namespace", "", "", "Kubernetes namespace in which cf-operator runs")
 	persistOutputCmd.Flags().StringP("output-prefix", "", "", "Name to be prefixed to the secret name.")
 
-
-	viper.BindPFlag("namespace", persistOutputCmd.Flags().Lookup("namespace"))
 	viper.BindPFlag("output-prefix", persistOutputCmd.Flags().Lookup("output-prefix"))
 
-
 	argToEnv := map[string]string{
-		"namespace": "NAMESPACE",
 		"output-prefix": "OUTPUT_PREFIX",
 	}
 	AddEnvToUsage(persistOutputCmd, argToEnv)
